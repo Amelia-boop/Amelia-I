@@ -531,7 +531,7 @@ export class ProcessingHelper {
               role: "user",
               parts: [
                 {
-                  text: `You are a coding challenge interpreter. Analyze the screenshots of the coding problem and extract all relevant information. Return the information in JSON format with these fields: problem_statement, constraints, example_input, example_output. Just return the structured JSON without any other text. Preferred coding language we gonna use for this problem is ${language}.`
+                  text: `You are a coding and mcq challenge expert. Analyze the screenshots of the problem and extract all relevant information. Return the information in JSON format with these fields if coding based: type (will be coding), problem_statement, constraints, example_input, example_output, boilerplate. If MCQ based: problem_statement, options, type(will be mcq). Just return the structured JSON without any other text. Preferred coding language we gonna use for this problem is ${language}.`
                 },
                 ...imageDataList.map(data => ({
                   inlineData: {
@@ -545,7 +545,7 @@ export class ProcessingHelper {
 
           // Make API request to Gemini
           const response = await axios.default.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${config.extractionModel || "gemini-2.0-flash"}:generateContent?key=${this.geminiApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${config.extractionModel || "gemini-2.5-flash"}:generateContent?key=${this.geminiApiKey}`,
             {
               contents: geminiMessages,
               generationConfig: {
@@ -557,12 +557,14 @@ export class ProcessingHelper {
           );
 
           const responseData = response.data as GeminiResponse;
+          console.log({responseData: JSON.stringify(responseData)});
           
           if (!responseData.candidates || responseData.candidates.length === 0) {
             throw new Error("Empty response from Gemini API");
           }
           
           const responseText = responseData.candidates[0].content.parts[0].text;
+          console.log({responseText});
           
           // Handle when Gemini might wrap the JSON in markdown code blocks
           const jsonText = responseText.replace(/```json|```/g, '').trim();
@@ -728,39 +730,62 @@ export class ProcessingHelper {
       // Update progress status
       if (mainWindow) {
         mainWindow.webContents.send("processing-status", {
-          message: "Creating optimal solution with detailed explanations...",
+          message: "Be Patient, generating solution...",
           progress: 60
         });
       }
 
+      let promptText = "";
+
       // Create prompt for solution generation
-      const promptText = `
-Generate a detailed solution for the following coding problem:
 
-PROBLEM STATEMENT:
-${problemInfo.problem_statement}
+      if (problemInfo.type && problemInfo.type.toLowerCase() === "coding") {
+        promptText = `
+        Generate a detailed solution for the following coding problem:
 
-CONSTRAINTS:
-${problemInfo.constraints || "No specific constraints provided."}
+        PROBLEM STATEMENT:
+        ${problemInfo.problem_statement}
 
-EXAMPLE INPUT:
-${problemInfo.example_input || "No example input provided."}
+        CONSTRAINTS:
+        ${problemInfo.constraints || "No specific constraints provided."}
 
-EXAMPLE OUTPUT:
-${problemInfo.example_output || "No example output provided."}
+        EXAMPLE INPUT:
+        ${problemInfo.example_input || "No example input provided."}
 
-LANGUAGE: ${language}
+        EXAMPLE OUTPUT:
+        ${problemInfo.example_output || "No example output provided."}
 
-I need the response in the following format:
-1. Code: A clean, optimized implementation in ${language}
-2. Your Thoughts: A list of key insights and reasoning behind your approach
-3. Time complexity: O(X) with a detailed explanation (at least 2 sentences)
-4. Space complexity: O(X) with a detailed explanation (at least 2 sentences)
+        LANGUAGE: ${language}
 
-For complexity explanations, please be thorough. For example: "Time complexity: O(n) because we iterate through the array only once. This is optimal as we need to examine each element at least once to find the solution." or "Space complexity: O(n) because in the worst case, we store all elements in the hashmap. The additional space scales linearly with the input size."
+        BOILERPLATE:
+        ${problemInfo.boilerplate || "No boilerplate code provided."}
+        `;
+        
+      } else if (problemInfo.type && problemInfo.type.toLowerCase() === "mcq") {
+        promptText = `
+        Answer this MCQ in one senetence. No explanations needed.
 
-Your solution should be efficient, well-commented, and handle edge cases.
-`;
+        PROBLEM STATEMENT:
+        ${problemInfo.problem_statement}
+
+        OPTIONS:
+        ${problemInfo.options || "No options provided."}
+        `;
+
+      } else {
+        promptText = `
+        Generate a detailed solution for the following problem, based on what you think type of problem it is.:
+
+        PROBLEM STATEMENT:
+        ${problemInfo.problem_statement}
+
+        CONSTRAINTS:
+        ${problemInfo.constraints || "No specific constraints provided."}
+
+        OPTIONS:
+        ${problemInfo.options || "No options provided."}
+        `;
+      }
 
       let responseContent;
       
@@ -801,7 +826,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
               role: "user",
               parts: [
                 {
-                  text: `You are an expert coding interview assistant. Provide a clear, optimal solution with detailed explanations for this problem:\n\n${promptText}`
+                  text: `You are an expert coding and mcq solver. Provide a clear, concise solution for this problem:\n\n${promptText}`
                 }
               ]
             }
@@ -809,7 +834,7 @@ Your solution should be efficient, well-commented, and handle edge cases.
 
           // Make API request to Gemini
           const response = await axios.default.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${config.solutionModel || "gemini-2.0-flash"}:generateContent?key=${this.geminiApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${config.solutionModel || "gemini-2.5-flash"}:generateContent?key=${this.geminiApiKey}`,
             {
               contents: geminiMessages,
               generationConfig: {
@@ -1130,7 +1155,7 @@ If you include code examples, use proper markdown code blocks with language spec
           }
 
           const response = await axios.default.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/${config.debuggingModel || "gemini-2.0-flash"}:generateContent?key=${this.geminiApiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${config.debuggingModel || "gemini-2.5-flash"}:generateContent?key=${this.geminiApiKey}`,
             {
               contents: geminiMessages,
               generationConfig: {
