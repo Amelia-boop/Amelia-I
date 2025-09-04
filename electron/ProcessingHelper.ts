@@ -724,6 +724,7 @@ export class ProcessingHelper {
       const mainWindow = this.deps.getMainWindow();
 
       if (!problemInfo) {
+        console.log({problemInfo});
         throw new Error("No problem info available");
       }
 
@@ -741,7 +742,7 @@ export class ProcessingHelper {
 
       if (problemInfo.type && problemInfo.type.toLowerCase() === "coding") {
         promptText = `
-        Generate a detailed solution for the following coding problem:
+        Generate a detailed solution for the following coding problem with no explaination, just code:
 
         PROBLEM STATEMENT:
         ${problemInfo.problem_statement}
@@ -758,12 +759,12 @@ export class ProcessingHelper {
         LANGUAGE: ${language}
 
         BOILERPLATE:
-        ${problemInfo.boilerplate || "No boilerplate code provided."}
+        ${problemInfo.boilerplate || "No boilerplate code provided then take input code too."}
         `;
         
       } else if (problemInfo.type && problemInfo.type.toLowerCase() === "mcq") {
         promptText = `
-        Answer this MCQ in one senetence. No explanations needed.
+        Answer this MCQ in one senetence. No explanations needed. Choose the most optimal answer.
 
         PROBLEM STATEMENT:
         ${problemInfo.problem_statement}
@@ -826,7 +827,7 @@ export class ProcessingHelper {
               role: "user",
               parts: [
                 {
-                  text: `You are an expert coding and mcq solver. Provide a clear, concise solution for this problem:\n\n${promptText}`
+                  text: `You are an expert coding and mcq solver. Provide a clear, concise solution for this problem without any explanations:\n\n${promptText}`
                 }
               ]
             }

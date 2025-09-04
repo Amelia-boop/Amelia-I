@@ -35,7 +35,7 @@ export class ShortcutsHelper {
   }
 
   public registerGlobalShortcuts(): void {
-    globalShortcut.register("CommandOrControl+H", async () => {
+    globalShortcut.register("CommandOrControl+Shift+S", async () => {
       const mainWindow = this.deps.getMainWindow()
       if (mainWindow) {
         console.log("Taking screenshot...")
@@ -52,11 +52,11 @@ export class ShortcutsHelper {
       }
     })
 
-    globalShortcut.register("CommandOrControl+Enter", async () => {
+    globalShortcut.register("CommandOrControl+Shift+X", async () => {
       await this.deps.processingHelper?.processScreenshots()
     })
 
-    globalShortcut.register("CommandOrControl+R", () => {
+    globalShortcut.register("CommandOrControl+Shift+Z", () => {
       console.log(
         "Command + R pressed. Canceling requests and resetting queues..."
       )
@@ -101,8 +101,8 @@ export class ShortcutsHelper {
       this.deps.moveWindowUp()
     })
 
-    globalShortcut.register("CommandOrControl+B", () => {
-      console.log("Command/Ctrl + B pressed. Toggling window visibility.")
+    globalShortcut.register("CommandOrControl+Shift+A", () => {
+      console.log("Command/Ctrl + Shift + A pressed. Toggling window visibility.")
       this.deps.toggleMainWindow()
     })
 
